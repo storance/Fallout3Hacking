@@ -1,0 +1,162 @@
+<!doctype html>
+<html ng-app="Fallout3Hacking">
+    <head>
+        <title>Fallout Hacking Puzzle Solver</title>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.5.2/underscore-min.js"></script>
+        <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.16/angular.min.js"></script>
+        <script src="js/fallout.js"></script>
+        <script src="js/fallout_solver.js"></script>
+
+        <link rel="stylesheet" href="css/main.css">
+        <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css">
+    </head>
+    <body>
+        <div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand" href="#">Fallout Hacking Puzzle Solver</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="container solver" ng-controller="FalloutCtrl">
+            <p ng-hide="solver">
+            Enter each of the words that appear on the hacking screen, then click <strong>Solve</strong> to
+            start the password solving process.
+            </p>
+
+            <div id="errors" class="alert alert-danger" ng-show="error">
+                {{error}}
+            </div>
+
+            <div id="edit-words" ng-show="showEditWords()">
+                <hr ng-show="words.length > 0" />
+                <h3 ng-show="words.length > 0">Potential Passwords</h3>
+
+                <table class="table table-hover table-condensed">
+                    <tbody>
+                        <tr ng-repeat="word in words" ng-class="{danger: word.error}">
+                            <td class="word" ng-click="editWord($index, $event)">
+                                <span ng-show="word.error">{{word.error}}</span>
+                                <div class="input-group input-sm" ng-class="{'has-error': word.error}">
+                                    <span ng-hide="word.edit">{{word.value}}</span>
+                                    <input type="text"
+                                           class="form-control input-sm"
+                                           ng-show="word.edit"
+                                           ng-model="word.value"
+                                           ng-change="validateWord($index)"
+                                           xng-focus="word.edit"
+                                           ng-blur="disableWordEditing()" />
+                                </div>
+                            </td>
+                            <td>
+                                <button type="button"
+                                        class="btn btn-default input-sm"
+                                        ng-click="deleteWord($index)">
+                                    <span class="glyphicon glyphicon-remove"></span> Delete
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <hr />
+            <div id="add-words" ng-hide="isSolveStarted()" ng-class="{'alert alert-danger': addWordError}">
+                <p ng-show="addWordError">{{addWordError}}</p>
+                <div class="input-group col-xs-6" ng-class="{'has-error': addWordError}">
+                    <label class="sr-only" for="addWord">Next Word</label>
+                    <input id="addWord"
+                           type="text"
+                           class="form-control"
+                           placeholder="Next Word"
+                           ng-model="addWordText"
+                           ng-keypress="callOnEnter($event, addWord)" />
+                     <span class="input-group-btn">
+                        <button type="button" class="btn btn-default" ng-click="addWord()">
+                            <span class="glyphicon glyphicon-plus"></span> Add
+                        </button>
+                     </span>
+                </div>
+            </div>
+
+            <div id="show-words" ng-show="isSolveStarted()">
+                <table class="table table-hover table-condensed" ng-show="words.length > 0">
+                    <thead>
+                        <tr>
+                            <th>Word</th>
+                            <th>Correct</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr ng-repeat="word in words"
+                            ng-class="{active: isSelectedChoice(word), success: isAnswer(word), danger: $parent.choice.error}">
+                            <td ng-class="{eliminated: !word.active, remaining: word.active}"
+                                ng-click="setChoice(word.value)">
+                                <span class="word">{{word.value}}</span>
+                                <span ng-show="isRecommendedChoice(word)" class="label label-primary">Recommended</span>
+                                <span ng-show="isAnswer(word)" class="label label-success">Password</span>
+                            </td>
+                            <td>
+                                <div ng-show="isSelectedChoice(word)" class="col-xs-3 input-group input-group-sm">
+                                    <input type="text"
+                                        class="form-control"
+                                        maxlength="2"
+                                        ng-model="$parent.choice.correct"
+                                        ng-keypress="callOnEnter($event, nextChoice)"/>
+                                    <span class="input-group-addon"> / {{ wordsLength}}</span>
+                                    <p ng-show="$parent.choice.error">{{choice.error}}</p>
+                                </div>
+                            </td>
+                            <td>
+                                <button ng-show="isSelectedChoice(word)"
+                                        class="btn btn-primary"
+                                        ng-click="nextChoice()">Next</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div ng-show="choiceHistory.length > 0">
+                    <hr/>
+                    <h2>Choices</h2>
+
+                    <table class="table table-hover table-condensed" >
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Word</th>
+                                <th>Correct</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr ng-repeat="choice in choiceHistory">
+                                <td>{{$index + 1}}</td>
+                                <td class="word">
+                                    {{choice.value}}
+                                </td>
+                                <td>
+                                    {{choice.correct}} / {{ wordsLength}}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="solve-area">
+                <button class="btn btn-primary" ng-show="showSolveButton()" ng-click="startSolve()">Solve</button>
+                <button class="btn btn-default" ng-show="showSolveButton()" ng-click="clearWords()">Reset</button>
+            </div>
+
+            <div ng-hide="isSolveStarted()">
+                <br />
+                <br />
+                <textarea ng-model="bulkAddText"></textarea>
+                <button ng-click="bulkAdd()">Bulk Add</button>
+            </div>
+        </div>
+    </body>
+</html>

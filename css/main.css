@@ -1,0 +1,20 @@
+.solver {
+	padding: 60px 15px;
+}
+
+.eliminated {
+	text-decoration: line-through;
+	color: gray;
+}
+
+.solve-area {
+	margin-top: 2em;
+}
+
+.remaining:hover {
+	cursor: pointer;
+}
+
+.word {
+	font-family: "Courier New", Courier, monospace
+}
