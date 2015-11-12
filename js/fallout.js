@@ -33,7 +33,7 @@ app.controller("FalloutCtrl", function($scope, $timeout, $filter) {
 
     $scope.addWord = function() {
         if ($scope.addWordText.length > 0) {
-            if ($scope.wordsLength > 0 && $scope.addWordText != $scope.wordsLength) {
+            if ($scope.wordsLength > 0 && $scope.addWordText.length != $scope.wordsLength) {
                 $scope.addWordError = "Must be the same length (" + $scope.wordsLength + ") as all other words.";
                 return;
             }
